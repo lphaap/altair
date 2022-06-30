@@ -2,7 +2,6 @@
 **/__pycache__
 
 # Ignore config folder (leave samples)
-**/config/config.json
-
-# Ignore .key files under auth
-common/auth/*.key 
+**/config/*
+!**/config/*sample*
+!**/config/.gitkeep
