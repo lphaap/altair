@@ -24,7 +24,7 @@ class Processor:
         # Init server script and fail on invalid configs
         try:
             config = json.load(
-                open("config.json")
+                open("config/config.json")
             );                
         except FileNotFoundError:
             logger.log("ERROR: Could not load server config file!");

@@ -27,6 +27,14 @@ class ConnectionHandler:
         self.event_listener = selectors.DefaultSelector(); # Socket event listener
         self.authenticator = Authenticator(); # Authenticator for user connections
         self.server_socket = None;
+        
+        # Test crypt module config files
+        try:
+            crypt.files_exist();
+        except FileNotFoundError:
+            logger.log("ERROR: Could not load crypt-module config files!");
+            sys.exit(1);
+             
         logger.log("ConnectionHandler - Init");
         
     

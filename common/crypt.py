@@ -4,6 +4,7 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+# Encrypt the given text, return bytes or string based on re_string flag
 def encrypt(payload, re_string = True):
     fernet = init_fernet();
     
@@ -20,7 +21,7 @@ def encrypt(payload, re_string = True):
     
     return encrypted_payload;
     
-    
+# Decrypt the given text, return bytes or string based on re_string flag    
 def decrypt(payload, re_string = True):
     fernet = init_fernet();
     
@@ -37,9 +38,11 @@ def decrypt(payload, re_string = True):
     
     return decrypted_payload;
 
+
+# Internal
 def init_fernet():
     
-    auth_path = os.path.join(os.path.dirname(__file__), "auth");
+    auth_path = os.path.join(os.path.dirname(__file__), "config");
     
     password = bytes(
         open(os.path.join(auth_path, "pass.key")).read(), 
@@ -63,3 +66,9 @@ def init_fernet():
     );
     
     return Fernet(encryption_key);
+
+
+# Try to load required files, throws FileNotFoundError
+def files_exist():
+    init_fernet();
+    return;
