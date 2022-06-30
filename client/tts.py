@@ -12,7 +12,7 @@ for voice in engine.getProperty("voices"):
     if "TTS_MS_EN-US_ZIRA" in voice.id:
         engine.setProperty('voice', voice.id);
 
-# Insert Texts to TTS    
+# Insert Texts to TTS
 for text in texts:
     engine.say(text);
 

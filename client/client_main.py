@@ -4,7 +4,7 @@ import threading;
 
 import sys
 sys.path.append("..") #Dynamic import FIXME
-from common import logger as logger; 
+from common import logger as logger;
 
 handler = ConnectionHandler();
 thread = threading.Thread(target = handler.connect_to_server);
