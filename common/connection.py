@@ -61,10 +61,10 @@ class Connection:
         return self.id;
 
     def get_ip(self):
-        return self.id;
+        return self.ip;
 
     def get_port(self):
-        return self.id;
+        return self.port;
 
     def get_socket(self):
         return self.socket;
