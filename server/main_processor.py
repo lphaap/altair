@@ -78,6 +78,15 @@ class Processor:
         logger.log("Processor - Gracefull shutdown complete");
 
 
+    # Restarts server instance
+    def restart(self):
+        logger.log("Processor - Initiating Server restart");
+        self.stop();
+        logger.log("\n\n-------------------------- RESTART EVENT --------------------------\n");
+        logger.log("Processor - Restarting Server threads");
+        self.start();
+
+
     # Process json commands
     def process(self, json_input):
         if (
@@ -97,6 +106,7 @@ class Processor:
 
         self.cmd_queue.put(json_input);
 
+
     # Threadable function for processing command queue
     def start_queue_processor(self):
         self.queue_active = True;
@@ -114,6 +124,7 @@ class Processor:
 
 
     # Handle new command based on the origin
+    # See commands.md for details
     def handle_command(self, json_input):
         logger.log(
             "Processor - Processing command: " + json_input["cmd"]
@@ -133,45 +144,93 @@ class Processor:
             case _:
                 return logger.log("Processor - Unexpected origin");
 
-    # Restarts server instance
-    def restart(self):
-        logger.log("Processor - Initiating Server restart");
-        self.stop();
-        logger.log("\n\n-------------------------- RESTART EVENT --------------------------\n");
-        logger.log("Processor - Restarting Server threads");
-        self.start();
-
 
     # All available Client commands
+    # See commands.md for details
     def handle_client_command(self, json_input):
-        # TODO Client commands
-        return;
+        match json_input["cmd"]:
+
+            case "clients":
+                clients = [];
+                for index, client_id in enumerate(
+                    self.connection_handler.get_active_connection_ids()
+                ):
+                    client_info = self.connection_handler.get_client_info(client_id);
+                    if (
+                        not client_info
+                        or client_info["id"] == json_input["origin_id"]
+                    ):
+                        continue;
+
+                    clients.append({"name": client_info["name"]});
+
+                return self.connection_handler.send_to(
+                    json_input["origin_id"],
+                    {
+                        "cmd": "message",
+                        "clients": clients,
+                    }
+                );
 
 
     # All available Admin commands
+    # See commands.md for details
     def handle_admin_command(self, json_input):
-        # TODO Admin commands
-        return self.handle_client_command(json_input); # Admins can access client commands
+        match json_input["cmd"]:
+
+            case "clients":
+                clients = [];
+                for index, client_id in enumerate(
+                    self.connection_handler.get_active_connection_ids()
+                ):
+                    client_info = self.connection_handler.get_client_info(client_id);
+                    if (
+                        not client_info
+                        or client_info["id"] == json_input["origin_id"]
+                    ):
+                        continue;
+
+                    clients.append(
+                        {
+                            "id": client_info["id"],
+                            "name": client_info["name"],
+                            "ip": client_info["ip"],
+                            "port": client_info["port"],
+                            "origin": Origin.to_str(client_info["origin"]),
+                        }
+                    );
+
+                return self.connection_handler.send_to(
+                    json_input["origin_id"],
+                    {
+                        "cmd": "message",
+                        "clients": clients,
+                    }
+                );
+
+
+            # Admins can access client commands
+            case _:
+                return self.handle_client_command(json_input);
 
 
     # All available Server commands
+    # See commands.md for details
     def handle_server_command(self, json_input):
         match json_input["cmd"]:
 
-            # Shutdown server and all connections
             case "shutdown":
                 return self.stop();
 
-            # Restart server instance
             case "restart":
                 return self.restart();
 
-            # Log currently active client connections
             case "clients":
                 re = "\n\nCURRENTLY ACTIVE CONNECTIONS:\n";
-                for index, client_id in enumerate(self.connection_handler.get_active_connection_ids()):
+                for index, client_id in enumerate(
+                    self.connection_handler.get_active_connection_ids()
+                ):
                     client_info = self.connection_handler.get_client_info(client_id)
-
                     if not client_info:
                         continue;
 

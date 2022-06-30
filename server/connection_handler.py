@@ -265,4 +265,6 @@ class ConnectionHandler:
             "name": connection.get_name(),
             "id": connection.get_id(),
             "origin": Origin.ADMIN if connection.is_admin() else Origin.CLIENT,
+            "ip": connection.get_ip(),
+            "port": connection.get_port(),
         };

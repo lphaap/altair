@@ -15,6 +15,9 @@ handler.send_to_server({
     "to": "test_user_123",
     "payload": "123456789"
 });
+handler.send_to_server({
+    "cmd": "clients",
+});
 time.sleep(5);
 logger.log("Main sleep done initializing shutdown");
 #handler.shutdown();
