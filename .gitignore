@@ -1,2 +1,8 @@
+# Ignore cache folders
 **/__pycache__
-/common/auth/
+
+# Ignore config folder (leave samples)
+**/config/config.json
+
+# Ignore .key files under auth
+common/auth/*.key 
