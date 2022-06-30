@@ -1,2 +1,2 @@
-# tiera
-P2P Message software and script runner
+# Tiera
+P2P Message software and script runner made primarily with Python.
