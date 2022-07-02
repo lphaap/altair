@@ -1,7 +1,7 @@
 from datetime import datetime;
 
 # Log given msg, persist param saves log
-def log( msg, persistent = False ):
+def log( msg: str, persistent: bool = False) -> None:
 
     if(type(msg) is not str):
         return;

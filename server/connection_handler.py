@@ -1,13 +1,13 @@
-from contextlib import closing
-from http import client
 import socket as sockets;
 import json as json;
 import threading as threading;
 import selectors as selectors;
 import types as types;
 import time as time;
+import queue as queue;
 from authenticator import Authenticator;
 from origin_enum import Origin;
+from typing import Union;
 
 import sys
 sys.path.append("..") #Dynamic import FIXME
@@ -18,15 +18,15 @@ from common.connection import Connection;
 # Class for handling multiple client connections
 class ConnectionHandler:
 
-    def __init__(self, processor, host_ip, host_port):
-        self.processor = processor; # Main Input processor class
+    def __init__(self, host_ip: str, host_port: str) -> None:
         self.host_ip = host_ip; # Ip for hosting socket server
         self.host_port = host_port; # Port for hosting socket server
         self.active = False; # Listen for connections or not
         self.connections = {}; # Active connections as Connection objects
         self.event_listener = selectors.DefaultSelector(); # Socket event listener
         self.authenticator = Authenticator(); # Authenticator for user connections
-        self.server_socket = None;
+        self.server_socket = None; # Server socket for easy access
+        self.msg_queue = queue.Queue(); # Command queue for processor to process
 
         # Test crypt module config files
         try:
@@ -39,7 +39,7 @@ class ConnectionHandler:
 
 
     # Start listening for client connections
-    def listen(self):
+    def listen(self) -> None:
         self.active = True;
         with sockets.socket(sockets.AF_INET, sockets.SOCK_STREAM) as server_socket:
 
@@ -63,7 +63,7 @@ class ConnectionHandler:
 
 
     # Register a new client connection
-    def add_connection(self, client_socket):
+    def add_connection(self, client_socket: sockets.socket) -> None:
         client_connection, client_address = client_socket.accept();
         client_connection.setblocking(False);
 
@@ -93,7 +93,12 @@ class ConnectionHandler:
 
 
     # Handle inputs sent from client connections
-    def handle_connection_event(self, client_socket, client_id, event_mask):
+    def handle_connection_event(
+        self,
+        client_socket: sockets.socket,
+        client_id: str,
+        event_mask: int
+    ) -> None:
         if event_mask & selectors.EVENT_READ:
             try:
                 raw_data = client_socket.recv(4094);
@@ -123,17 +128,24 @@ class ConnectionHandler:
                 logger.log("ConnectionHandler - Authentication success: " + client_id);
                 return; # Return since this message was for authentication
 
-            #FIXME handle new message
             logger.log("ConnectionHandler - New message from " + client_id + ": " + decrypted_data);
 
-            # Pass the command for processing
-            self.processor.process(
+            # Append the message to message queue
+            self.msg_queue.put(
                 self.add_connection_headers(client_connection, parsed_data)
             );
 
 
+    # Return next message from the queue, or None on empty
+    def next_message(self) -> Union[dict, None]:
+        if not self.msg_queue.empty():
+            return self.msg_queue.get();
+
+        return None;
+
+
     # Authenticate the connection, applies result to obj
-    def authenticate_connection(self, connection, auth_package) -> bool:
+    def authenticate_connection(self, connection: Connection, auth_package: dict) -> bool:
         # Validate auth package
         try:
             cmd = auth_package['cmd'];
@@ -160,7 +172,7 @@ class ConnectionHandler:
 
 
     # Add connection related headers used later in processing
-    def add_connection_headers(self, connection, parsed_data):
+    def add_connection_headers(self, connection: Connection, parsed_data: dict) -> dict:
 
         # Add connection origin, id and name to command
         parsed_data["origin"] = Origin.CLIENT;
@@ -174,7 +186,7 @@ class ConnectionHandler:
 
 
     # Encrypt and send a message to the designated client
-    def send_to(self, client_id, msg_json) -> bool:
+    def send_to(self, client_id: str, msg_json: dict) -> bool:
         connection = self.connections[client_id];
 
         # Validate connection pre sending
@@ -199,14 +211,14 @@ class ConnectionHandler:
 
         return True;
 
-
-    def send_broadcast(self, msg_json):
+    # Brodcast given json message to all clients
+    def send_broadcast(self, msg_json: dict) -> None:
         for client_id in self.get_active_connection_ids():
             self.send_to(client_id, msg_json);
 
 
     # Try to shutdown client connection gracefully
-    def shutdown_connection(self, client_id):
+    def shutdown_connection(self, client_id: str) -> None:
         connection = self.connections[client_id];
         if not connection:
             return;
@@ -218,7 +230,7 @@ class ConnectionHandler:
 
 
     # Try to shutdown client connection gracefully
-    def shutdown_server(self):
+    def shutdown_server(self) -> None:
         socket = self.server_socket;
         if not socket:
             return;
@@ -229,7 +241,7 @@ class ConnectionHandler:
 
 
     # Try to shutdown all connections gracefully
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.active = False;
         time.sleep(1); # Wait for listener to shutdown
         self.shutdown_server();
@@ -247,16 +259,16 @@ class ConnectionHandler:
 
 
     # Parse client_id based on source ip and port
-    def parse_client_id(self, client_ip, client_port) -> str:
+    def parse_client_id(self, client_ip: str, client_port: int) -> str:
         return str(client_ip).replace(".", "") + str(client_port);
 
 
     # Return an array of active connection ids
-    def get_active_connection_ids(self):
+    def get_active_connection_ids(self) -> None:
         return self.connections.copy().keys();
 
     # Return client name, id and origin
-    def get_client_info(self, client_id):
+    def get_client_info(self, client_id: str) -> None:
         connection = self.connections[client_id];
         if not connection:
             return None;
