@@ -151,7 +151,10 @@ class Processor:
             case Origin.SERVER:
                 return self.handle_server_command(json_input);
             case _:
-                return logger.log("Processor - Unexpected origin");
+                return logger.log(
+                    "Processor - Unexpected origin: "
+                    + origin_to_str(json_input["origin"])
+                );
 
 
     # All available Client commands
@@ -180,6 +183,9 @@ class Processor:
                         "clients": clients,
                     }
                 );
+
+            case _:
+                return logger.log("Processor - Unexpected command: " + json_input["cmd"]);
 
 
     # All available Admin commands
@@ -257,3 +263,6 @@ class Processor:
                     re = re + "None";
 
                 return logger.log(re);
+
+            case _:
+                return logger.log("Processor - Unexpected command: " + json_input["cmd"]);
