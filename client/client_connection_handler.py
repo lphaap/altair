@@ -6,7 +6,7 @@ import selectors as selectors;
 import threading as threading;
 import types as types;
 
-import sys
+import sys;
 sys.path.append(".."); #Dynamic import FIXME
 from common import crypt as crypt;
 from common import logger as logger;
@@ -16,7 +16,7 @@ class ConnectionHandler:
 
     SERVER_ID = "server-connection";
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.server_ip = "127.0.0.1"; # Ip for hosting socket server FIXME Get from config
         self.server_port = 55555; # Port for hosting socket server FIXME Get from config
         self.active = False; # Listen for connections or not
@@ -25,7 +25,7 @@ class ConnectionHandler:
         logger.log("ConnectionHandler - Init");
 
     # Start listening for client connections
-    def connect_to_server(self):
+    def connect_to_server(self) -> None:
         server_address = (self.server_ip, self.server_port);
         server_socket = sockets.socket(sockets.AF_INET, sockets.SOCK_STREAM);
         server_socket.setblocking(False);
@@ -60,7 +60,7 @@ class ConnectionHandler:
 
 
     # Try to gracefully shutdown server connection
-    def shutdown_server_connection(self):
+    def shutdown_server_connection(self) -> None:
         if not self.server_connection.is_active():
             return;
 
@@ -69,7 +69,7 @@ class ConnectionHandler:
         logger.log("ConnectionHandler - Closing server connection");
 
     # Listen for registered socket events
-    def listen(self):
+    def listen(self) -> None:
         logger.log("ConnectionHandler - Listener started");
         self.active = True;
         while self.active:
@@ -87,7 +87,12 @@ class ConnectionHandler:
 
 
     # Handle events from event_listener
-    def handle_connection_event(self, socket, client_id, event_mask):
+    def handle_connection_event(
+        self,
+        socket: sockets.socket,
+        client_id: str,
+        event_mask: int
+    ) -> None:
         if event_mask & selectors.EVENT_READ:
             try:
                 raw_data = socket.recv(4094);
@@ -112,7 +117,7 @@ class ConnectionHandler:
 
 
     # Try to send json payload to server
-    def send_to_server(self, msg_json):
+    def send_to_server(self, msg_json: dict) -> None:
         if not self.server_connection.is_active():
             return;
 
@@ -126,7 +131,7 @@ class ConnectionHandler:
 
 
     # Try to gracefully shutdown all connections
-    def shutdown(self):
+    def shutdown(self) -> None:
         if not self.active:
             return;
 

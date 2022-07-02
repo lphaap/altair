@@ -1,4 +1,5 @@
 from enum import Enum, auto;
+from typing import Union;
 
 # Enum to map message categories based on command origin
 class Origin(Enum):
@@ -6,10 +7,10 @@ class Origin(Enum):
     ADMIN = auto();
     CLIENT = auto();
 
-    def to_str(origin) -> str:
-        origin_to_str = {
-            Origin.SERVER: "SERVER",
-            Origin.ADMIN: "ADMIN",
-            Origin.CLIENT: "CLIENT",
-        };
-        return origin_to_str[origin];
+def origin_to_str(origin: Origin) -> Union[str, None]:
+    origin_to_str = {
+        Origin.SERVER: "SERVER",
+        Origin.ADMIN: "ADMIN",
+        Origin.CLIENT: "CLIENT",
+    };
+    return origin_to_str[origin];

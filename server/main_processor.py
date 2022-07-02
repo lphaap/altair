@@ -1,10 +1,11 @@
 import json as json;
-from connection_handler import ConnectionHandler;
-from input_handler import InputHandler;
 import threading as threading;
 import time as time;
 import queue as queue;
-from origin_enum import Origin;
+from origin_enum import Origin, origin_to_str;
+from input_handler import InputHandler;
+from connection_handler import ConnectionHandler;
+
 
 import sys
 sys.path.append(".."); #Dynamic import FIXME
@@ -14,7 +15,7 @@ from common import logger as logger;
 # Main class for processing commands received from active connections
 class Processor:
 
-    def __init__(self):
+    def __init__(self) -> None:
         logger.log("Processor - Init");
 
         #Init FIFO Q
@@ -32,18 +33,17 @@ class Processor:
 
         try:
             self.connection_handler = ConnectionHandler(
-                self,
                 config["host_ip"],
                 int(config["host_port"])
             );
-            self.input_handler = InputHandler(self);
+            self.input_handler = InputHandler();
             self.enable_input_handler = config["enable_input_handler"];
         except KeyError:
             logger.log("ERROR: Config file missing key variables!");
             sys.exit();
 
     # Start up server and required threads
-    def start(self):
+    def start(self) -> None:
         logger.log("Processor - Starting all server threads");
 
         # CommandQueueProcessor start
@@ -69,7 +69,7 @@ class Processor:
 
 
     # Cleanup and shutdown all threads
-    def stop(self):
+    def stop(self) -> None:
         logger.log("Processor - Stopping all server threads");
         self.input_handler.shutdown();
         self.connection_handler.shutdown();
@@ -79,7 +79,7 @@ class Processor:
 
 
     # Restarts server instance
-    def restart(self):
+    def restart(self) -> None:
         logger.log("Processor - Initiating Server restart");
         self.stop();
         logger.log("\n\n-------------------------- RESTART EVENT --------------------------\n");
@@ -87,49 +87,58 @@ class Processor:
         self.start();
 
 
-    # Process json commands
-    def process(self, json_input):
+    # Validate json command for processing
+    def validate_command(self, json_input: dict) -> bool:
+
         if (
             not json_input
             or not json_input.get("cmd", False)
         ):
-            logger.log("Processor - Received empty command");
-            return;
+            return False;
 
         if (
             not json_input.get("origin", False)
             or not json_input.get("origin_id", False)
             or not json_input.get("origin_name", False)
         ):
-            logger.log("Processor - Received command without sender context");
-            return;
+            return False;
 
-        self.cmd_queue.put(json_input);
+        return True;
 
 
     # Threadable function for processing command queue
-    def start_queue_processor(self):
+    def start_queue_processor(self) -> None:
         self.queue_active = True;
         logger.log("Processor - Queue listener started");
         while self.queue_active:
-            if not self.cmd_queue.empty():
-                self.handle_command(self.cmd_queue.get());
             time.sleep(0.01); # Sleep 1ms to save resources FIXME Remove?
 
+            # Fetch next manual command from InputHandler and process it if available
+            manual_cmd = self.input_handler.next_message();
+            if self.validate_command(manual_cmd):
+                self.handle_command(manual_cmd);
+                continue; # Found a valid command continue
+
+            # Fetch next client command and process it if available
+            client_cmd = self.connection_handler.next_message();
+            if self.validate_command(client_cmd):
+                self.handle_command(client_cmd);
+                logger.log("valid2")
+                continue; # Found a valid command continue
 
     # Shutdown queue processor thread
-    def shutdown_queue_processor(self):
+    def shutdown_queue_processor(self) -> None:
         self.queue_active = False;
         logger.log("Processor - Closing Queue listener");
 
 
     # Handle new command based on the origin
     # See commands.md for details
-    def handle_command(self, json_input):
+    def handle_command(self, json_input: dict) -> None:
         logger.log(
             "Processor - Processing command: " + json_input["cmd"]
             + ", Origin: "
-            + Origin.to_str(json_input["origin"])
+            + origin_to_str(json_input["origin"])
             + "@"
             + json_input["origin_id"]
         );
@@ -147,7 +156,7 @@ class Processor:
 
     # All available Client commands
     # See commands.md for details
-    def handle_client_command(self, json_input):
+    def handle_client_command(self, json_input: dict) -> None:
         match json_input["cmd"]:
 
             case "clients":
@@ -175,7 +184,7 @@ class Processor:
 
     # All available Admin commands
     # See commands.md for details
-    def handle_admin_command(self, json_input):
+    def handle_admin_command(self, json_input: dict) -> None:
         match json_input["cmd"]:
 
             case "clients":
@@ -196,7 +205,7 @@ class Processor:
                             "name": client_info["name"],
                             "ip": client_info["ip"],
                             "port": client_info["port"],
-                            "origin": Origin.to_str(client_info["origin"]),
+                            "origin": origin_to_str(client_info["origin"]),
                         }
                     );
 
@@ -216,7 +225,7 @@ class Processor:
 
     # All available Server commands
     # See commands.md for details
-    def handle_server_command(self, json_input):
+    def handle_server_command(self, json_input: dict) -> None:
         match json_input["cmd"]:
 
             case "shutdown":
@@ -238,7 +247,7 @@ class Processor:
                         re,
                         client_info["name"],
                         " - ",
-                        Origin.to_str(client_info["origin"]),
+                        origin_to_str(client_info["origin"]),
                         "@",
                         client_info["id"],
                         "\n"

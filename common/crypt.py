@@ -1,11 +1,12 @@
 import base64;
 import os;
+from typing import Union;
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 # Encrypt the given text, return bytes or string based on re_string flag
-def encrypt(payload, re_string = True):
+def encrypt(payload: Union[bytes, str], re_string: bool = True):
     fernet = init_fernet();
 
     if type(payload) is str:
@@ -22,7 +23,7 @@ def encrypt(payload, re_string = True):
     return encrypted_payload;
 
 # Decrypt the given text, return bytes or string based on re_string flag
-def decrypt(payload, re_string = True):
+def decrypt(payload: Union[bytes, str], re_string: bool = True):
     fernet = init_fernet();
 
     if type(payload) is str:
@@ -40,7 +41,7 @@ def decrypt(payload, re_string = True):
 
 
 # Internal
-def init_fernet():
+def init_fernet() -> Fernet:
 
     auth_path = os.path.join(os.path.dirname(__file__), "config");
 
@@ -69,6 +70,6 @@ def init_fernet():
 
 
 # Try to load required files, throws FileNotFoundError
-def files_exist():
+def files_exist() -> None:
     init_fernet();
     return;
