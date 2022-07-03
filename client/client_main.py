@@ -10,14 +10,18 @@ handler = ConnectionHandler();
 thread = threading.Thread(target = handler.connect_to_server);
 thread.start();
 time.sleep(5);
+#handler.send_to_server({
+#    "cmd": "message",
+#    "to": "12700158099",
+#    "message": "Hello 123"
+#});
 handler.send_to_server({
-    "cmd": "message",
-    "to": "test_user_123",
-    "payload": "123456789"
+    "cmd": "broadcast",
+    "payload": {
+        "cmd": "message",
+        "message": "Hello 123"
+    }
 });
-handler.send_to_server({
-    "cmd": "clients",
-});
-time.sleep(5);
-logger.log("Main sleep done initializing shutdown");
+#time.sleep(5);
+#logger.log("Main sleep done initializing shutdown");
 #handler.shutdown();

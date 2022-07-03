@@ -211,9 +211,13 @@ class ConnectionHandler:
 
         return True;
 
+
     # Brodcast given json message to all clients
-    def send_broadcast(self, msg_json: dict) -> None:
+    # Setting from_id will drop said client from the brodcast
+    def send_broadcast(self, msg_json: dict, from_id: str = None) -> None:
         for client_id in self.get_active_connection_ids():
+            if from_id == client_id:
+                continue;
             self.send_to(client_id, msg_json);
 
 
@@ -256,6 +260,17 @@ class ConnectionHandler:
     # Is the handler listening for connections
     def is_active(self) -> bool:
         return self.active;
+
+
+    # Does client exist are they active
+    def connection_exists(self, client_id: str) -> bool:
+        if not client_id:
+            return False;
+
+        connection = self.connections[client_id];
+        if not connection:
+            return False;
+        return True;
 
 
     # Parse client_id based on source ip and port

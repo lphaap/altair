@@ -68,6 +68,7 @@ class ConnectionHandler:
         self.server_connection.shutdown();
         logger.log("ConnectionHandler - Closing server connection");
 
+
     # Listen for registered socket events
     def listen(self) -> None:
         logger.log("ConnectionHandler - Listener started");
@@ -111,8 +112,6 @@ class ConnectionHandler:
 
             #FIXME: Move to event handler
             if parsed_data['cmd'] == "shutdown":
-                self.shutdown();
-            elif parsed_data['cmd'] == "error" and parsed_data['code'] == 401:
                 self.shutdown();
 
 

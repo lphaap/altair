@@ -9,4 +9,4 @@ class Authenticator:
         return True;
 
     def authenticate_admin(self, username: str, password: str) -> bool:
-        return False;
+        return True;

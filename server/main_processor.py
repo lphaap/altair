@@ -123,7 +123,6 @@ class Processor:
             client_cmd = self.connection_handler.next_message();
             if self.validate_command(client_cmd):
                 self.handle_command(client_cmd);
-                logger.log("valid2")
                 continue; # Found a valid command continue
 
     # Shutdown queue processor thread
@@ -143,23 +142,38 @@ class Processor:
             + json_input["origin_id"]
         );
 
+        handle_error = lambda msg : self.connection_handler.send_to(
+            json_input["origin_id"],
+            {
+                "cmd": "error",
+                "source": json_input["cmd"],
+                "message": msg
+            }
+        );
+
         match json_input["origin"]:
             case Origin.CLIENT:
-                return self.handle_client_command(json_input);
+                result = self.handle_client_command(json_input);
+                if not result[0]:
+                    handle_error(result[1]);
+                return;
             case Origin.ADMIN:
-                return self.handle_admin_command(json_input);
+                result = self.handle_admin_command(json_input);
+                if not result[0]:
+                    handle_error(result[1]);
+                return;
             case Origin.SERVER:
-                return self.handle_server_command(json_input);
+                result = self.handle_server_command(json_input);
+                return;
             case _:
                 return logger.log(
                     "Processor - Unexpected origin: "
                     + origin_to_str(json_input["origin"])
                 );
 
-
     # All available Client commands
     # See commands.md for details
-    def handle_client_command(self, json_input: dict) -> None:
+    def handle_client_command(self, json_input: dict) -> tuple[bool, str]:
         match json_input["cmd"]:
 
             case "clients":
@@ -174,23 +188,57 @@ class Processor:
                     ):
                         continue;
 
-                    clients.append({"name": client_info["name"]});
+                    clients.append({
+                        "id": client_info["id"],
+                        "name": client_info["name"],
+                    });
 
-                return self.connection_handler.send_to(
+                self.connection_handler.send_to(
                     json_input["origin_id"],
                     {
                         "cmd": "message",
+                        "re": "clients",
                         "clients": clients,
                     }
                 );
 
+                return (True, "Success");
+
+
+            case "message":
+                recipient = json_input.get("to", None);
+                message = json_input.get("message", None);
+                origin_info = self.connection_handler.get_client_info(json_input["origin_id"]);
+
+                if (
+                    not recipient
+                    or not message
+                    or not self.connection_handler.connection_exists(recipient)
+                ):
+                    return (False, "Ivalid or disconnected recipient.");
+
+                if not self.connection_handler.send_to(
+                    recipient,
+                    {
+                        "cmd": "message",
+                        "message": message,
+                        "origin_name": origin_info["id"],
+                        "origin_id": origin_info["name"]
+                    }
+                ):
+                    return (False, "Unexpected failure while sending.");
+
+                return (True, "Success");
+
             case _:
-                return logger.log("Processor - Unexpected command: " + json_input["cmd"]);
+                logger.log("Processor - Unexpected command: " + json_input["cmd"]);
+                return (False, "Invalid command");
+
 
 
     # All available Admin commands
     # See commands.md for details
-    def handle_admin_command(self, json_input: dict) -> None:
+    def handle_admin_command(self, json_input: dict) -> tuple[bool, str]:
         match json_input["cmd"]:
 
             case "clients":
@@ -215,13 +263,29 @@ class Processor:
                         }
                     );
 
-                return self.connection_handler.send_to(
+                self.connection_handler.send_to(
                     json_input["origin_id"],
                     {
                         "cmd": "message",
                         "clients": clients,
                     }
                 );
+
+                return (True, "Success");
+
+
+            case "broadcast":
+                payload = json_input.get("payload", None);
+                cmd = payload.get("cmd", None);
+                if (
+                    not payload
+                    or not cmd
+                ):
+                    return (False, "Ivalid payload");
+
+                self.connection_handler.send_broadcast(payload, json_input["origin_id"]);
+
+                return (True, "Success");
 
 
             # Admins can access client commands
@@ -231,14 +295,16 @@ class Processor:
 
     # All available Server commands
     # See commands.md for details
-    def handle_server_command(self, json_input: dict) -> None:
+    def handle_server_command(self, json_input: dict) -> tuple[bool, str]:
         match json_input["cmd"]:
 
             case "shutdown":
-                return self.stop();
+                self.stop();
+                return (True, "Success");
 
             case "restart":
-                return self.restart();
+                self.restart();
+                return (True, "Success");
 
             case "clients":
                 re = "\n\nCURRENTLY ACTIVE CONNECTIONS:\n";
@@ -262,7 +328,8 @@ class Processor:
                 if not self.connection_handler.get_active_connection_ids():
                     re = re + "None";
 
-                return logger.log(re);
+                return (True, "Success");
 
             case _:
-                return logger.log("Processor - Unexpected command: " + json_input["cmd"]);
+                logger.log("Processor - Unexpected command: " + json_input["cmd"]);
+                return (False, "Invalid command");

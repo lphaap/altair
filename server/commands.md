@@ -1,20 +1,28 @@
 # Server commands
 
 ## *shutdown*
-*Shutdowns server and all server threads.*
+ - *Shutdowns server and all server threads.*
+ - *Request: 'shutdown'*
 
 ## *restart*
-*Restart server and all server threads. (Drops all client connections)*
+ - Restart server and all server threads. (Drops all client connections)
+ - *Request: 'restart'*
 
 ## *clients*
-*Log active clients with related information:*  
-
-    name - ORIGIN@CLIENT_ID
+ - Log active clients with related information:*  
+ - *Request: 'clients'*
+ - *Response: 'name - ORIGIN@CLIENT_ID'*
 
 
 # Admin commands
 ## *clients*
-*Retrivies active clients with full information:*  
+ - Retrivies active clients with full information  
+
+*Request:*
+
+    "cmd": "clients",
+
+*Response:*
 
     "cmd": "message",
     "clients": [
@@ -27,13 +35,49 @@
         }
     ]
 
+## *broadcast*
+ - Broadcasts given payload to all clients  
+
+*Request:*
+
+    "cmd": "broadcast",
+    "payload": {
+        "cmd": "shutdown",
+    }
+
 # Client commands
 ## *clients*
-*Retrieves active client names:*  
+- Retrieves active clients  
 
-    "cmd": "message",
+*Request:*
+
+    "cmd": "clients",
+
+*Response:*
+
+    "cmd": "response",
     "clients": [
         {  
+            "id": "client",
             "name": "client",
         }
     ]
+
+## *message*
+- Send message to specified receiver  
+
+*Request:*
+
+    "cmd": "message",
+    "message": "Hello world",
+    "to": "client_id"
+
+
+# Errors
+ - If an error occurs an error response is returned
+
+## *Error*
+
+    "cmd": "error",
+    "source": "cmd_which_failed",
+    "message": "Error description"
